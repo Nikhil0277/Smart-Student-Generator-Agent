@@ -649,11 +649,10 @@
 // ════════════════════════════════════════════
 // CONFIG
 // ════════════════════════════════════════════
-const API_KEY    = "HlsFVK5ahJvxnsEFZkGOa1j_0t3RogpIvbOGp3c75mHw";
-const PROJECT_ID = "a869ea08-6524-48a0-9d27-c598eb1ee4b2";
-const MODEL_ID   = "ibm/granite-4-h-small";
-const API_URL    = "https://eu-de.ml.cloud.ibm.com/ml/v1/text/generation?version=2023-05-29";
-const IAM_URL    = "https://iam.cloud.ibm.com/identity/token";
+const PROJECT_ID  = "a869ea08-6524-48a0-9d27-c598eb1ee4b2";
+const MODEL_ID    = "ibm/granite-4-h-small";
+// All IBM API calls go through the Netlify serverless proxy (no CORS issues)
+const PROXY_URL   = "/.netlify/functions/proxy";
 
 // ════════════════════════════════════════════
 // STATE  (hydrated from localStorage on init)
@@ -705,76 +704,52 @@ function setConnectionStatus(ok, msg) {
 }
 
 // ════════════════════════════════════════════
-// IAM TOKEN  — with retry + status feedback
+// IAM TOKEN  — fetched via Netlify serverless proxy (no CORS)
 // ════════════════════════════════════════════
 async function getIAMToken() {
   if (state.iam_token && Date.now() < state.token_expiry) return state.iam_token;
-
-  // Try direct first (works when CORS is open or in same-origin deployments)
+  setConnectionStatus(false, "Connecting…");
   try {
-    const res = await fetch(IAM_URL, {
+    const res = await fetch(PROXY_URL, {
       method:  "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded",
-                 "Accept": "application/json" },
-      body:    `grant_type=urn:ibm:params:oauth:grant-type:apikey&apikey=${API_KEY}`
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ action: "token" })
     });
-    if (!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
-    state.iam_token   = data.access_token;
+    if (!res.ok || !data.access_token) throw new Error(JSON.stringify(data).substring(0, 150));
+    state.iam_token    = data.access_token;
     state.token_expiry = Date.now() + (data.expires_in - 60) * 1000;
     setConnectionStatus(true, "IBM Granite-4 Live");
     return state.iam_token;
   } catch(e) {
-    // CORS fallback: try via allorigins proxy using POST-over-GET workaround
-    try {
-      const body = `grant_type=urn:ibm:params:oauth:grant-type:apikey&apikey=${API_KEY}`;
-      const proxyUrl = "https://api.allorigins.win/post?url=" + encodeURIComponent(IAM_URL);
-      const res2 = await fetch(proxyUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json" },
-        body
-      });
-      if (!res2.ok) throw new Error("proxy HTTP " + res2.status);
-      const wrapper = await res2.json();
-      const data2 = typeof wrapper.contents === "string" ? JSON.parse(wrapper.contents) : wrapper;
-      if (!data2.access_token) throw new Error("No token in proxy response");
-      state.iam_token    = data2.access_token;
-      state.token_expiry  = Date.now() + (data2.expires_in - 60) * 1000;
-      setConnectionStatus(true, "IBM Granite-4 Live (proxy)");
-      return state.iam_token;
-    } catch(e2) {
-      setConnectionStatus(false, "API Offline — check CORS / network");
-      throw new Error("Cannot get IAM token. Run app from a server or enable CORS. Detail: " + e.message);
-    }
+    setConnectionStatus(false, "API Error — see console");
+    throw new Error("Cannot get IAM token: " + e.message);
   }
 }
 
 // ════════════════════════════════════════════
-// CORE AI CALL  — IBM WatsonX Granite-4
+// CORE AI CALL  — IBM WatsonX Granite-4 (via Netlify proxy)
 // ════════════════════════════════════════════
 async function callGranite(prompt, maxTokens = 800) {
   const token = await getIAMToken();
-  const body = {
-    model_id: MODEL_ID,
+  const payload = {
+    model_id:   MODEL_ID,
     project_id: PROJECT_ID,
-    input: prompt,
+    input:      prompt,
     parameters: {
-      decoding_method:   "greedy",
-      max_new_tokens:    maxTokens,
+      decoding_method:    "greedy",
+      max_new_tokens:     maxTokens,
       repetition_penalty: 1.1,
-      stop_sequences:    ["<end>"]
+      stop_sequences:     ["<end>"]
     }
   };
-  const res = await fetch(API_URL, {
+  const res = await fetch(PROXY_URL, {
     method:  "POST",
-    headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-    body:    JSON.stringify(body)
+    headers: { "Content-Type": "application/json" },
+    body:    JSON.stringify({ action: "generate", token, payload })
   });
-  if (!res.ok) {
-    const errText = await res.text().catch(() => "");
-    throw new Error("Granite API error " + res.status + ": " + errText.substring(0, 200));
-  }
   const data = await res.json();
+  if (!res.ok) throw new Error("Granite API error " + res.status + ": " + JSON.stringify(data).substring(0, 200));
   const output = data.results?.[0]?.generated_text?.trim();
   if (!output) throw new Error("Model returned empty response — try a shorter prompt or reduce max tokens.");
   return output;
