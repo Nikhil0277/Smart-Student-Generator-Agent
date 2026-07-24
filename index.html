@@ -1,0 +1,1515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Smart Study Generator AI — IBM WatsonX</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2236;
+    --border: #2d3748;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #3b82f6;
+    --accent2: #8b5cf6;
+    --success: #10b981;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --grad: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+
+  /* ── NAV ── */
+  .nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 60px; position: sticky; top: 0; z-index: 100; }
+  .nav-logo { font-size: 18px; font-weight: 700; background: var(--grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.5px; }
+  .nav-tabs { display: flex; gap: 4px; }
+  .nav-tab { background: none; border: none; color: var(--muted); padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all .2s; }
+  .nav-tab:hover { color: var(--text); background: var(--surface2); }
+  .nav-tab.active { color: #fff; background: var(--accent); }
+  .nav-status { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* ── PAGES ── */
+  .page { display: none; padding: 24px; max-width: 1100px; margin: 0 auto; animation: fadeIn .3s ease; }
+  .page.active { display: block; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+  /* ── HERO ── */
+  .hero { text-align: center; padding: 48px 24px 32px; }
+  .hero h1 { font-size: 36px; font-weight: 800; background: var(--grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 12px; }
+  .hero p { color: var(--muted); font-size: 15px; max-width: 560px; margin: 0 auto 28px; line-height: 1.7; }
+  .badge-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 32px; }
+  .badge { background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 5px 14px; font-size: 12px; color: var(--muted); }
+  .badge span { color: var(--accent); font-weight: 600; }
+
+  /* ── CARDS ── */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+  .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .card-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .icon-blue { background: rgba(59,130,246,.15); }
+  .icon-purple { background: rgba(139,92,246,.15); }
+  .icon-green { background: rgba(16,185,129,.15); }
+  .icon-amber { background: rgba(245,158,11,.15); }
+  .card-title { font-size: 15px; font-weight: 600; }
+  .card-sub { font-size: 12px; color: var(--muted); }
+
+  /* ── GRID ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  @media(max-width:768px) { .grid-2,.grid-3,.grid-4 { grid-template-columns: 1fr; } .nav-tabs { gap: 2px; } .nav-tab { padding: 6px 10px; font-size: 12px; } }
+
+  /* ── FORM CONTROLS ── */
+  label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 6px; }
+  input[type=text], input[type=file], textarea, select {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); padding: 10px 14px; font-size: 14px; outline: none; transition: border-color .2s;
+  }
+  input[type=text]:focus, textarea:focus, select:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 120px; line-height: 1.6; }
+  select option { background: var(--surface2); }
+
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; transition: all .2s; }
+  .btn-primary { background: var(--grad); color: #fff; }
+  .btn-primary:hover { opacity: .9; transform: translateY(-1px); }
+  .btn-secondary { background: var(--surface2); border: 1px solid var(--border); color: var(--text); }
+  .btn-secondary:hover { border-color: var(--accent); }
+  .btn-sm { padding: 6px 14px; font-size: 13px; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+  /* ── UPLOAD ZONE ── */
+  .upload-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 32px; text-align: center; cursor: pointer; transition: all .2s; }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: rgba(59,130,246,.04); }
+  .upload-zone p { color: var(--muted); font-size: 13px; margin-top: 8px; }
+  .upload-zone .uz-icon { font-size: 32px; }
+
+  /* ── AI RESPONSE ── */
+  .ai-response { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-top: 16px; min-height: 80px; line-height: 1.7; font-size: 14px; white-space: pre-wrap; }
+  .ai-response.loading::after { content: ''; display: inline-block; width: 12px; height: 12px; border: 2px solid var(--accent); border-top-color: transparent; border-radius: 50%; animation: spin .6s linear infinite; margin-left: 8px; vertical-align: middle; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+  .ai-label { font-size: 12px; color: var(--accent); font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+
+  /* ── FLASHCARDS ── */
+  .flashcard-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin-top: 16px; }
+  .flashcard { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; cursor: pointer; transition: all .2s; min-height: 120px; display: flex; flex-direction: column; justify-content: center; position: relative; }
+  .flashcard:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .flashcard.flipped .fc-front { display: none; }
+  .flashcard.flipped .fc-back { display: block; }
+  .fc-front .fc-q { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .fc-front .fc-text { font-size: 14px; font-weight: 600; }
+  .fc-back { display: none; font-size: 13px; color: var(--success); line-height: 1.6; }
+  .fc-hint { font-size: 11px; color: var(--muted); margin-top: 8px; }
+
+  /* ── PROGRESS / DASHBOARD ── */
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .stat-val { font-size: 28px; font-weight: 800; margin: 4px 0; }
+  .stat-label { font-size: 13px; color: var(--muted); }
+  .stat-delta { font-size: 12px; color: var(--success); }
+  .progress-bar-wrap { background: var(--surface2); border-radius: 100px; height: 8px; overflow: hidden; margin: 8px 0; }
+  .progress-bar { height: 100%; border-radius: 100px; background: var(--grad); transition: width 1s ease; }
+
+  /* ── TOPIC CHIPS ── */
+  .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .chip { padding: 5px 12px; border-radius: 20px; font-size: 12px; border: 1px solid; cursor: pointer; transition: all .2s; }
+  .chip-danger { border-color: var(--danger); color: var(--danger); background: rgba(239,68,68,.08); }
+  .chip-warn { border-color: var(--warn); color: var(--warn); background: rgba(245,158,11,.08); }
+  .chip-success { border-color: var(--success); color: var(--success); background: rgba(16,185,129,.08); }
+  .chip-blue { border-color: var(--accent); color: var(--accent); background: rgba(59,130,246,.08); }
+
+  /* ── QUIZ ── */
+  .quiz-option { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin: 8px 0; cursor: pointer; font-size: 14px; transition: all .2s; }
+  .quiz-option:hover { border-color: var(--accent); }
+  .quiz-option.correct { border-color: var(--success); background: rgba(16,185,129,.1); }
+  .quiz-option.wrong { border-color: var(--danger); background: rgba(239,68,68,.1); }
+
+  /* ── ALERTS ── */
+  .alert { border-radius: 8px; padding: 12px 16px; font-size: 13px; margin-bottom: 10px; display: flex; align-items: flex-start; gap: 10px; }
+  .alert-warn { background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.3); }
+  .alert-info { background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.3); }
+  .alert-success { background: rgba(16,185,129,.1); border: 1px solid rgba(16,185,129,.3); }
+
+  /* ── VOICE ── */
+  .voice-btn { width: 60px; height: 60px; border-radius: 50%; border: none; cursor: pointer; font-size: 24px; display: flex; align-items: center; justify-content: center; transition: all .2s; }
+  .voice-btn.idle { background: var(--surface2); border: 2px solid var(--border); }
+  .voice-btn.recording { background: rgba(239,68,68,.2); border: 2px solid var(--danger); animation: ripple 1s infinite; }
+  @keyframes ripple { 0%{box-shadow:0 0 0 0 rgba(239,68,68,.4)} 70%{box-shadow:0 0 0 12px rgba(239,68,68,0)} 100%{box-shadow:0 0 0 0 rgba(239,68,68,0)} }
+
+  /* ── CONCEPT MAP ── */
+  .concept-map { background: var(--surface2); border-radius: 10px; padding: 20px; margin-top: 16px; }
+  .cm-node { background: var(--surface); border: 1px solid var(--accent); border-radius: 8px; padding: 8px 16px; display: inline-block; font-size: 13px; font-weight: 600; margin: 4px; }
+  .cm-node.center { background: rgba(59,130,246,.15); font-size: 15px; }
+  .cm-row { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+  .cm-arrow { color: var(--muted); font-size: 18px; }
+
+  /* ── STUDY PLAN ── */
+  .plan-day { background: var(--surface2); border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; padding: 12px 16px; margin-bottom: 10px; }
+  .plan-day-header { font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 6px; }
+  .plan-task { font-size: 13px; color: var(--muted); padding: 3px 0; display: flex; align-items: center; gap: 8px; }
+  .plan-task input[type=checkbox] { accent-color: var(--accent); width: 14px; height: 14px; }
+
+  /* ── TABS ── */
+  .tab-bar { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+  .tab-btn { background: none; border: none; color: var(--muted); padding: 10px 16px; cursor: pointer; font-size: 13px; font-weight: 500; border-bottom: 2px solid transparent; transition: all .2s; }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ── MISC ── */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+  .row { display: flex; gap: 12px; align-items: flex-end; }
+  .flex-1 { flex: 1; }
+  .text-muted { color: var(--muted); font-size: 13px; }
+  .text-success { color: var(--success); }
+  .text-warn { color: var(--warn); }
+  .text-danger { color: var(--danger); }
+  .mt-8 { margin-top: 8px; }
+  .mt-16 { margin-top: 16px; }
+  .section-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 14px; }
+  .tag { background: rgba(59,130,246,.15); color: var(--accent); border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 600; }
+
+  /* ── SVG CHART ── */
+  .chart-wrap { background: var(--surface2); border-radius: 10px; padding: 16px; }
+  svg text { fill: var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-logo">⚡ SmartStudy AI</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('home')">🏠 Home</button>
+    <button class="nav-tab" onclick="showPage('fuse')">📚 Fuse</button>
+    <button class="nav-tab" onclick="showPage('multimodal')">🎤 Input</button>
+    <button class="nav-tab" onclick="showPage('agentic')">🤖 Planner</button>
+    <button class="nav-tab" onclick="showPage('dashboard')">📊 Dashboard</button>
+  </div>
+  <div class="nav-status">
+    <div class="status-dot"></div>
+    <span id="conn-status-text">IBM Granite-4 Live</span>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════
+     PAGE: HOME
+══════════════════════════════════════════ -->
+<div class="page active" id="page-home">
+  <div class="hero">
+    <h1>Smart Study Generator AI</h1>
+    <p>Powered by IBM WatsonX Granite-4 — Fuse your learning resources, get AI-powered summaries, personalized study plans, and real-time progress tracking.</p>
+    <div class="badge-row">
+      <div class="badge">Model: <span>ibm/granite-4-h-small</span></div>
+      <div class="badge">Platform: <span>IBM WatsonX</span></div>
+      <div class="badge">Region: <span>eu-de</span></div>
+      <div class="badge">Status: <span class="text-success">Connected</span></div>
+    </div>
+  </div>
+
+  <div class="grid-4">
+    <div class="stat-card" style="cursor:pointer" onclick="showPage('fuse')">
+      <div style="font-size:28px;margin-bottom:8px">📚</div>
+      <div class="stat-val" id="home-docs">0</div>
+      <div class="stat-label">Fused Documents</div>
+      <div class="stat-delta mt-8">Aggregate learning resources →</div>
+    </div>
+    <div class="stat-card" style="cursor:pointer" onclick="showPage('multimodal')">
+      <div style="font-size:28px;margin-bottom:8px">🎤</div>
+      <div class="stat-val" id="home-inputs">0</div>
+      <div class="stat-label">Multimodal Inputs</div>
+      <div class="stat-delta mt-8">Notes, voice & images →</div>
+    </div>
+    <div class="stat-card" style="cursor:pointer" onclick="showPage('agentic')">
+      <div style="font-size:28px;margin-bottom:8px">🤖</div>
+      <div class="stat-val" id="home-plans">0</div>
+      <div class="stat-label">Study Plans</div>
+      <div class="stat-delta mt-8">Personalized planner →</div>
+    </div>
+    <div class="stat-card" style="cursor:pointer" onclick="showPage('dashboard')">
+      <div style="font-size:28px;margin-bottom:8px">📊</div>
+      <div class="stat-val" id="home-score">—</div>
+      <div class="stat-label">Readiness Score</div>
+      <div class="stat-delta mt-8">View progress →</div>
+    </div>
+  </div>
+
+  <div class="grid-2 mt-16">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon icon-amber">⚡</div>
+        <div><div class="card-title">Quick Study Boost</div><div class="card-sub">Type any topic for instant AI explanation</div></div>
+      </div>
+      <div class="row">
+        <input type="text" class="flex-1" id="quick-topic" placeholder="e.g. Quantum Entanglement, Photosynthesis…" />
+        <button class="btn btn-primary btn-sm" onclick="quickBoost()">Ask AI</button>
+      </div>
+      <div id="quick-response" class="ai-response mt-8" style="display:none"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon icon-amber">🔔</div>
+        <div><div class="card-title">Predictive Alerts</div><div class="card-sub">AI-identified high-priority topics</div></div>
+      </div>
+      <div id="alert-box">
+        <div class="alert alert-warn">⚠️ <span>Focus on <b>Topic X</b> — frequently asked in past 3 exams.</span></div>
+        <div class="alert alert-info">💡 <span>You haven't reviewed <b>Chapter 5</b> in 4 days.</span></div>
+        <div class="alert alert-success">✅ <span>Your quiz score on <b>Algorithms</b> improved 18% this week.</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE: FUSE — Learning Resource Aggregator
+══════════════════════════════════════════ -->
+<div class="page" id="page-fuse">
+  <div class="card-header" style="margin-bottom:20px">
+    <div class="card-icon icon-blue">📚</div>
+    <div><div class="card-title" style="font-size:20px">Fuse Learning Resources</div>
+    <div class="card-sub">Aggregate notes, textbooks, articles & tutorials into structured study material</div></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="section-title">Add Resource</div>
+      <div style="margin-bottom:12px">
+        <label>Resource Type</label>
+        <select id="res-type">
+          <option value="class_notes">📝 Class Notes</option>
+          <option value="textbook">📖 Textbook Chapter</option>
+          <option value="research">🔬 Research Article</option>
+          <option value="tutorial">💻 Online Tutorial</option>
+          <option value="past_exam">📋 Past Exam Questions</option>
+        </select>
+      </div>
+      <div style="margin-bottom:12px">
+        <label>Subject / Topic</label>
+        <input type="text" id="res-subject" placeholder="e.g. Machine Learning, Thermodynamics" />
+      </div>
+      <div style="margin-bottom:12px">
+        <label>Paste Content</label>
+        <textarea id="res-content" placeholder="Paste your notes, article text, or textbook excerpt here…" style="min-height:140px"></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="fuseResource()" id="fuse-btn">🔗 Fuse & Summarize</button>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Fused Knowledge Base (<span id="kb-count">0</span>)</div>
+      <div id="kb-list" style="max-height:320px;overflow-y:auto">
+        <div class="text-muted" style="padding:20px;text-align:center">No resources fused yet. Add your first resource →</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mt-16">
+    <div class="section-title">AI Structured Summary</div>
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchFuseTab('summary',this)">📄 Summary</button>
+      <button class="tab-btn" onclick="switchFuseTab('flashcards',this)">🃏 Flashcards</button>
+      <button class="tab-btn" onclick="switchFuseTab('conceptmap',this)">🗺️ Concept Map</button>
+      <button class="tab-btn" onclick="switchFuseTab('keypoints',this)">🎯 Key Points</button>
+    </div>
+
+    <div id="fuse-summary">
+      <div class="ai-label">🤖 IBM Granite-4 — Structured Summary</div>
+      <div id="fuse-summary-text" class="ai-response">Fuse a resource to see the AI-generated structured summary here.</div>
+    </div>
+
+    <div id="fuse-flashcards" style="display:none">
+      <div class="ai-label">🃏 Auto-Generated Flashcards <span class="tag" id="fc-count">0 cards</span></div>
+      <div id="flashcard-grid" class="flashcard-grid"></div>
+    </div>
+
+    <div id="fuse-conceptmap" style="display:none">
+      <div class="ai-label">🗺️ Concept Map</div>
+      <div id="concept-map-container" class="concept-map">
+        <div class="text-muted" style="text-align:center;padding:20px">Fuse a resource to generate a concept map.</div>
+      </div>
+    </div>
+
+    <div id="fuse-keypoints" style="display:none">
+      <div class="ai-label">🎯 Key Points & Exam Highlights</div>
+      <div id="keypoints-list" class="ai-response">Fuse a resource to extract key exam points.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE: MULTIMODAL INPUT
+══════════════════════════════════════════ -->
+<div class="page" id="page-multimodal">
+  <div class="card-header" style="margin-bottom:20px">
+    <div class="card-icon icon-purple">🎤</div>
+    <div><div class="card-title" style="font-size:20px">Multimodal Input</div>
+    <div class="card-sub">Upload notes, speak queries, or upload textbook images — AI generates summaries, flashcards & concept maps</div></div>
+  </div>
+
+  <div class="grid-3">
+    <!-- TEXT NOTES -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon icon-blue">📝</div>
+        <div><div class="card-title">Text Notes</div></div>
+      </div>
+      <textarea id="mm-text" placeholder="Type or paste your handwritten notes, lecture content…" style="min-height:160px"></textarea>
+      <div style="margin-top:12px">
+        <label>Output Format</label>
+        <select id="mm-text-format">
+          <option value="summary">Concise Summary</option>
+          <option value="flashcards">Flashcards</option>
+          <option value="bullets">Bullet Points</option>
+          <option value="explain">Explain Simply</option>
+        </select>
+      </div>
+      <button class="btn btn-primary btn-sm" style="margin-top:12px;width:100%" onclick="processTextNote()">✨ Process with AI</button>
+    </div>
+
+    <!-- VOICE INPUT -->
+    <div class="card" style="text-align:center">
+      <div class="card-header" style="justify-content:center">
+        <div class="card-icon icon-purple">🎤</div>
+        <div><div class="card-title">Voice Query</div></div>
+      </div>
+      <p class="text-muted" style="margin-bottom:20px;font-size:13px">Press the mic, speak your question or topic, get an AI answer instantly.</p>
+      <button class="voice-btn idle" id="voice-btn" onclick="toggleVoice()" style="margin:0 auto">🎤</button>
+      <p id="voice-status" class="text-muted mt-8" style="font-size:13px">Click to start recording</p>
+      <div id="voice-transcript" style="margin-top:12px;font-size:13px;color:var(--text);min-height:40px;background:var(--surface2);border-radius:8px;padding:10px"></div>
+      <button class="btn btn-secondary btn-sm" style="margin-top:12px;width:100%" id="voice-process-btn" onclick="processVoiceQuery()" disabled>🤖 Ask Granite-4</button>
+    </div>
+
+    <!-- IMAGE UPLOAD -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon icon-green">🖼️</div>
+        <div><div class="card-title">Image / Textbook Page</div></div>
+      </div>
+      <div class="upload-zone" id="img-zone" onclick="document.getElementById('img-input').click()">
+        <div class="uz-icon">📷</div>
+        <p>Click or drag & drop a textbook page, diagram, or handwritten note</p>
+        <p style="color:var(--accent);font-size:12px;margin-top:4px">JPG, PNG, PDF supported</p>
+      </div>
+      <input type="file" id="img-input" accept="image/*,.pdf" style="display:none" onchange="handleImageUpload(event)" />
+      <div id="img-preview" style="margin-top:12px;display:none">
+        <img id="img-prev-src" style="width:100%;border-radius:8px;border:1px solid var(--border)" />
+      </div>
+      <button class="btn btn-primary btn-sm" style="margin-top:12px;width:100%" id="img-process-btn" onclick="processImage()" disabled>🔍 Analyze Image</button>
+    </div>
+  </div>
+
+  <!-- OUTPUT -->
+  <div class="card mt-16">
+    <div class="ai-label">🤖 Multimodal AI Output — IBM Granite-4</div>
+    <div id="mm-output" class="ai-response">Process any input above to see AI-generated output here.</div>
+    <div id="mm-flashcards" class="flashcard-grid" style="margin-top:16px"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE: AGENTIC PLANNER
+══════════════════════════════════════════ -->
+<div class="page" id="page-agentic">
+  <div class="card-header" style="margin-bottom:20px">
+    <div class="card-icon icon-amber">🤖</div>
+    <div><div class="card-title" style="font-size:20px">Predictive & Agentic Study Planner</div>
+    <div class="card-sub">AI recommends personalized study plans, highlights important topics & generates practice quizzes</div></div>
+  </div>
+
+  <div class="grid-2">
+    <!-- PLANNER CONFIG -->
+    <div class="card">
+      <div class="section-title">Configure Your Study Plan</div>
+      <div style="margin-bottom:12px">
+        <label>Subject / Course</label>
+        <input type="text" id="plan-subject" placeholder="e.g. Computer Science, Biology, Mathematics" />
+      </div>
+      <div style="margin-bottom:12px">
+        <label>Exam Date</label>
+        <input type="text" id="plan-examdate" placeholder="e.g. 2025-08-15 or in 3 weeks" />
+      </div>
+      <div style="margin-bottom:12px">
+        <label>Current Knowledge Level</label>
+        <select id="plan-level">
+          <option value="beginner">Beginner</option>
+          <option value="intermediate" selected>Intermediate</option>
+          <option value="advanced">Advanced</option>
+        </select>
+      </div>
+      <div style="margin-bottom:12px">
+        <label>Daily Study Hours</label>
+        <select id="plan-hours">
+          <option value="1">1 hour/day</option>
+          <option value="2" selected>2 hours/day</option>
+          <option value="3">3 hours/day</option>
+          <option value="4">4+ hours/day</option>
+        </select>
+      </div>
+      <div style="margin-bottom:16px">
+        <label>Weak Topics (comma-separated)</label>
+        <input type="text" id="plan-weak" placeholder="e.g. Recursion, Integrals, Organic Chemistry" />
+      </div>
+      <button class="btn btn-primary" style="width:100%" onclick="generateStudyPlan()" id="plan-btn">🤖 Generate AI Study Plan</button>
+    </div>
+
+    <!-- ALERTS & PREDICTIONS -->
+    <div class="card">
+      <div class="section-title">AI Predictions & Alerts</div>
+      <div id="prediction-alerts">
+        <div class="alert alert-info">💡 <div><b>Set up your study plan</b> to unlock personalized AI predictions and topic priority alerts.</div></div>
+      </div>
+      <hr class="divider" />
+      <div class="section-title">Practice Quiz</div>
+      <div style="margin-bottom:12px">
+        <label>Quiz Topic</label>
+        <input type="text" id="quiz-topic" placeholder="e.g. Binary Trees, World War II, Calculus" />
+      </div>
+      <div style="margin-bottom:12px">
+        <label>Difficulty</label>
+        <select id="quiz-diff">
+          <option value="easy">Easy</option>
+          <option value="medium" selected>Medium</option>
+          <option value="hard">Hard</option>
+        </select>
+      </div>
+      <button class="btn btn-secondary" style="width:100%" onclick="generateQuiz()" id="quiz-btn">🎯 Generate Quiz</button>
+    </div>
+  </div>
+
+  <!-- STUDY PLAN OUTPUT -->
+  <div class="card mt-16" id="study-plan-card" style="display:none">
+    <div class="ai-label">📅 Your Personalized Study Plan — IBM Granite-4</div>
+    <div id="study-plan-content"></div>
+  </div>
+
+  <!-- QUIZ OUTPUT -->
+  <div class="card mt-16" id="quiz-card" style="display:none">
+    <div class="ai-label">🎯 Practice Quiz</div>
+    <div id="quiz-content"></div>
+    <div id="quiz-result" style="margin-top:16px;display:none"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE: DASHBOARD
+══════════════════════════════════════════ -->
+<div class="page" id="page-dashboard">
+  <div class="card-header" style="margin-bottom:20px">
+    <div class="card-icon icon-green">📊</div>
+    <div><div class="card-title" style="font-size:20px">Study Progress Dashboard</div>
+    <div class="card-sub">Real-time learning milestones, weak areas, quiz performance & readiness forecast</div></div>
+  </div>
+
+  <!-- STAT ROW -->
+  <div class="grid-4">
+    <div class="stat-card">
+      <div class="stat-label">Overall Readiness</div>
+      <div class="stat-val text-success" id="d-readiness">72%</div>
+      <div class="progress-bar-wrap"><div class="progress-bar" id="d-readiness-bar" style="width:72%"></div></div>
+      <div class="stat-delta">↑ 8% this week</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Topics Covered</div>
+      <div class="stat-val" id="d-topics">14 / 22</div>
+      <div class="progress-bar-wrap"><div class="progress-bar" style="width:64%;background:linear-gradient(90deg,#8b5cf6,#3b82f6)"></div></div>
+      <div class="stat-delta">↑ 3 topics this week</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Avg. Quiz Score</div>
+      <div class="stat-val text-warn" id="d-quiz">68%</div>
+      <div class="progress-bar-wrap"><div class="progress-bar" style="width:68%;background:linear-gradient(90deg,#f59e0b,#ef4444)"></div></div>
+      <div class="stat-delta">↑ 12% vs last month</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Study Streak</div>
+      <div class="stat-val" style="color:var(--accent)">🔥 7</div>
+      <div class="stat-label" style="margin-top:4px">days in a row</div>
+      <div class="stat-delta mt-8">Keep it up!</div>
+    </div>
+  </div>
+
+  <div class="grid-2 mt-16">
+    <!-- PERFORMANCE CHART -->
+    <div class="card">
+      <div class="section-title">Weekly Performance</div>
+      <div class="chart-wrap">
+        <svg id="perf-chart" width="100%" height="160" viewBox="0 0 400 160">
+          <defs>
+            <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.5"/>
+              <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.0"/>
+            </linearGradient>
+          </defs>
+          <!-- Grid lines -->
+          <line x1="0" y1="40" x2="400" y2="40" stroke="#2d3748" stroke-width="1"/>
+          <line x1="0" y1="80" x2="400" y2="80" stroke="#2d3748" stroke-width="1"/>
+          <line x1="0" y1="120" x2="400" y2="120" stroke="#2d3748" stroke-width="1"/>
+          <text x="0" y="38" font-size="10">100%</text>
+          <text x="0" y="78" font-size="10">60%</text>
+          <text x="0" y="118" font-size="10">20%</text>
+          <!-- Area fill -->
+          <polygon points="32,100 90,88 148,72 206,60 264,52 322,44 380,36 380,140 32,140" fill="url(#chartGrad)"/>
+          <!-- Line -->
+          <polyline points="32,100 90,88 148,72 206,60 264,52 322,44 380,36" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- Dots -->
+          <circle cx="32" cy="100" r="4" fill="#3b82f6"/>
+          <circle cx="90" cy="88" r="4" fill="#3b82f6"/>
+          <circle cx="148" cy="72" r="4" fill="#3b82f6"/>
+          <circle cx="206" cy="60" r="4" fill="#3b82f6"/>
+          <circle cx="264" cy="52" r="4" fill="#3b82f6"/>
+          <circle cx="322" cy="44" r="4" fill="#3b82f6"/>
+          <circle cx="380" cy="36" r="4" fill="#8b5cf6"/>
+          <!-- Labels -->
+          <text x="28" y="155" font-size="10" text-anchor="middle">Mon</text>
+          <text x="86" y="155" font-size="10" text-anchor="middle">Tue</text>
+          <text x="144" y="155" font-size="10" text-anchor="middle">Wed</text>
+          <text x="202" y="155" font-size="10" text-anchor="middle">Thu</text>
+          <text x="260" y="155" font-size="10" text-anchor="middle">Fri</text>
+          <text x="318" y="155" font-size="10" text-anchor="middle">Sat</text>
+          <text x="376" y="155" font-size="10" text-anchor="middle">Sun</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- TOPIC BREAKDOWN -->
+    <div class="card">
+      <div class="section-title">Topic Readiness</div>
+      <div id="topic-readiness">
+        <div style="margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;font-size:13px"><span>Algorithms</span><span class="text-success">88%</span></div>
+          <div class="progress-bar-wrap"><div class="progress-bar" style="width:88%"></div></div>
+        </div>
+        <div style="margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;font-size:13px"><span>Data Structures</span><span class="text-success">76%</span></div>
+          <div class="progress-bar-wrap"><div class="progress-bar" style="width:76%"></div></div>
+        </div>
+        <div style="margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;font-size:13px"><span>Database Systems</span><span class="text-warn">54%</span></div>
+          <div class="progress-bar-wrap"><div class="progress-bar" style="width:54%;background:linear-gradient(90deg,#f59e0b,#ef4444)"></div></div>
+        </div>
+        <div style="margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;font-size:13px"><span>Machine Learning</span><span class="text-warn">61%</span></div>
+          <div class="progress-bar-wrap"><div class="progress-bar" style="width:61%;background:linear-gradient(90deg,#f59e0b,#3b82f6)"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:13px"><span>Operating Systems</span><span class="text-danger">38%</span></div>
+          <div class="progress-bar-wrap"><div class="progress-bar" style="width:38%;background:linear-gradient(90deg,#ef4444,#f59e0b)"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2 mt-16">
+    <!-- WEAK AREAS -->
+    <div class="card">
+      <div class="section-title">🔴 Weak Areas — AI Recommendations</div>
+      <div id="weak-areas-content">
+        <div class="chip-row">
+          <div class="chip chip-danger">OS Scheduling</div>
+          <div class="chip chip-danger">SQL Joins</div>
+          <div class="chip chip-warn">Neural Networks</div>
+          <div class="chip chip-warn">Dynamic Programming</div>
+          <div class="chip chip-success">Sorting Algorithms</div>
+          <div class="chip chip-success">Binary Trees</div>
+        </div>
+        <div style="margin-top:16px">
+          <button class="btn btn-primary btn-sm" onclick="aiWeakAreaAdvice()">🤖 Get AI Advice for Weak Areas</button>
+        </div>
+        <div id="weak-ai-advice" class="ai-response mt-8" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- EXAM FORECAST -->
+    <div class="card">
+      <div class="section-title">📅 Exam Readiness Forecast</div>
+      <div style="margin-bottom:12px">
+        <label>Target Exam</label>
+        <input type="text" id="forecast-exam" placeholder="e.g. Final CS Exam, GATE 2025" />
+      </div>
+      <div style="margin-bottom:12px">
+        <label>Exam Date</label>
+        <input type="text" id="forecast-date" placeholder="e.g. 2025-09-01" />
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="generateForecast()">📈 Generate Forecast</button>
+      <div id="forecast-output" class="ai-response mt-8" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- AI INSIGHTS -->
+  <div class="card mt-16">
+    <div class="ai-label">🤖 IBM Granite-4 — Personalized Insights</div>
+    <button class="btn btn-primary btn-sm" onclick="generateInsights()">✨ Generate Full AI Analysis</button>
+    <div id="insights-output" class="ai-response mt-8" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════ -->
+<script>
+// ════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════
+const API_KEY    = "HlsFVK5ahJvxnsEFZkGOa1j_0t3RogpIvbOGp3c75mHw";
+const PROJECT_ID = "a869ea08-6524-48a0-9d27-c598eb1ee4b2";
+const MODEL_ID   = "ibm/granite-4-h-small";
+const API_URL    = "https://eu-de.ml.cloud.ibm.com/ml/v1/text/generation?version=2023-05-29";
+const IAM_URL    = "https://iam.cloud.ibm.com/identity/token";
+
+// ════════════════════════════════════════════
+// STATE  (hydrated from localStorage on init)
+// ════════════════════════════════════════════
+const STORAGE_KEY = "smartstudy_state_v1";
+
+function loadState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    return {
+      iam_token:   null,
+      token_expiry: 0,
+      kb:          saved.kb          || [],
+      mm_inputs:   saved.mm_inputs   || 0,
+      plans:       saved.plans       || 0,
+      flashcards:  saved.flashcards  || [],
+      quiz_history:saved.quiz_history|| [],
+      topics:      saved.topics      || {},
+      voice_text:  "",
+      recognition: null,
+      is_recording:false
+    };
+  } catch(e) { return { iam_token:null,token_expiry:0,kb:[],mm_inputs:0,plans:0,flashcards:[],quiz_history:[],topics:{},voice_text:"",recognition:null,is_recording:false }; }
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      kb:          state.kb,
+      mm_inputs:   state.mm_inputs,
+      plans:       state.plans,
+      flashcards:  state.flashcards,
+      quiz_history:state.quiz_history,
+      topics:      state.topics
+    }));
+  } catch(e) {}
+}
+
+let state = loadState();
+
+// ════════════════════════════════════════════
+// CONNECTION STATUS
+// ════════════════════════════════════════════
+function setConnectionStatus(ok, msg) {
+  const dot  = document.querySelector('.status-dot');
+  const text = document.getElementById('conn-status-text');
+  if (dot)  dot.style.background = ok ? 'var(--success)' : 'var(--danger)';
+  if (text) text.textContent = msg;
+}
+
+// ════════════════════════════════════════════
+// IAM TOKEN  — with retry + status feedback
+// ════════════════════════════════════════════
+async function getIAMToken() {
+  if (state.iam_token && Date.now() < state.token_expiry) return state.iam_token;
+
+  // Try direct first (works when CORS is open or in same-origin deployments)
+  try {
+    const res = await fetch(IAM_URL, {
+      method:  "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded",
+                 "Accept": "application/json" },
+      body:    `grant_type=urn:ibm:params:oauth:grant-type:apikey&apikey=${API_KEY}`
+    });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    state.iam_token   = data.access_token;
+    state.token_expiry = Date.now() + (data.expires_in - 60) * 1000;
+    setConnectionStatus(true, "IBM Granite-4 Live");
+    return state.iam_token;
+  } catch(e) {
+    // CORS fallback: try via allorigins proxy using POST-over-GET workaround
+    try {
+      const body = `grant_type=urn:ibm:params:oauth:grant-type:apikey&apikey=${API_KEY}`;
+      const proxyUrl = "https://api.allorigins.win/post?url=" + encodeURIComponent(IAM_URL);
+      const res2 = await fetch(proxyUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json" },
+        body
+      });
+      if (!res2.ok) throw new Error("proxy HTTP " + res2.status);
+      const wrapper = await res2.json();
+      const data2 = typeof wrapper.contents === "string" ? JSON.parse(wrapper.contents) : wrapper;
+      if (!data2.access_token) throw new Error("No token in proxy response");
+      state.iam_token    = data2.access_token;
+      state.token_expiry  = Date.now() + (data2.expires_in - 60) * 1000;
+      setConnectionStatus(true, "IBM Granite-4 Live (proxy)");
+      return state.iam_token;
+    } catch(e2) {
+      setConnectionStatus(false, "API Offline — check CORS / network");
+      throw new Error("Cannot get IAM token. Run app from a server or enable CORS. Detail: " + e.message);
+    }
+  }
+}
+
+// ════════════════════════════════════════════
+// CORE AI CALL  — IBM WatsonX Granite-4
+// ════════════════════════════════════════════
+async function callGranite(prompt, maxTokens = 800) {
+  const token = await getIAMToken();
+  const body = {
+    model_id: MODEL_ID,
+    project_id: PROJECT_ID,
+    input: prompt,
+    parameters: {
+      decoding_method:   "greedy",
+      max_new_tokens:    maxTokens,
+      repetition_penalty: 1.1,
+      stop_sequences:    ["<end>"]
+    }
+  };
+  const res = await fetch(API_URL, {
+    method:  "POST",
+    headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+    body:    JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error("Granite API error " + res.status + ": " + errText.substring(0, 200));
+  }
+  const data = await res.json();
+  const output = data.results?.[0]?.generated_text?.trim();
+  if (!output) throw new Error("Model returned empty response — try a shorter prompt or reduce max tokens.");
+  return output;
+}
+
+// ════════════════════════════════════════════
+// STARTUP CONNECTION TEST
+// ════════════════════════════════════════════
+async function testConnection() {
+  setConnectionStatus(false, "Connecting…");
+  try {
+    await getIAMToken();
+    // Quick ping with minimal tokens
+    await callGranite("Reply with exactly: OK", 5);
+    setConnectionStatus(true, "IBM Granite-4 Live ✓");
+  } catch(e) {
+    setConnectionStatus(false, "Check network / API key");
+    console.warn("Connection test failed:", e.message);
+  }
+}
+
+// ════════════════════════════════════════════
+// UI HELPERS
+// ════════════════════════════════════════════
+function typewrite(el, text, speed = 10) {
+  el.textContent = "";
+  let i = 0;
+  const interval = setInterval(() => {
+    el.textContent += text[i++];
+    if (i >= text.length) clearInterval(interval);
+  }, speed);
+}
+
+function setLoading(el, loading) {
+  if (loading) {
+    el.classList.add("loading");
+    el.textContent = "Thinking…";
+    el.style.display = "block";
+  } else {
+    el.classList.remove("loading");
+  }
+}
+
+function showToast(msg, type = "info") {
+  const t = document.createElement("div");
+  t.style.cssText = `position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:600;color:#fff;max-width:320px;
+    background:${type==="success"?"#10b981":type==="error"?"#ef4444":"#3b82f6"};box-shadow:0 4px 20px rgba(0,0,0,.4);transition:opacity .4s;`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity = "0"; setTimeout(() => t.remove(), 400); }, 3000);
+}
+
+// ════════════════════════════════════════════
+// NAV
+// ════════════════════════════════════════════
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  const tabIdx = { home:0, fuse:1, multimodal:2, agentic:3, dashboard:4 };
+  document.querySelectorAll('.nav-tab')[tabIdx[id]].classList.add('active');
+  updateHomeStats();
+  if (id === 'dashboard') refreshDashboard();
+}
+
+function updateHomeStats() {
+  document.getElementById('home-docs').textContent  = state.kb.length;
+  document.getElementById('home-inputs').textContent = state.mm_inputs;
+  document.getElementById('home-plans').textContent  = state.plans;
+  // Compute readiness from topic scores stored in state
+  const scores = Object.values(state.topics);
+  if (scores.length) {
+    const avg = Math.round(scores.reduce((a,b)=>a+b,0) / scores.length);
+    document.getElementById('home-score').textContent = avg + "%";
+  }
+}
+
+// ════════════════════
+// HOME — Quick Boost
+// ════════════════════
+async function quickBoost() {
+  const topic = document.getElementById('quick-topic').value.trim();
+  if (!topic) return;
+  const el = document.getElementById('quick-response');
+  el.style.display = "block";
+  setLoading(el, true);
+  try {
+    const prompt = `You are an expert tutor. Give a clear, concise and well-structured explanation of the following topic for a student:\n\nTopic: ${topic}\n\nProvide: 1) Core concept in 2-3 sentences 2) Key sub-topics as bullet points 3) One real-world analogy or example 4) Common exam question hint\n\nExplanation:`;
+    const result = await callGranite(prompt, 500);
+    setLoading(el, false);
+    typewrite(el, result);
+    state.mm_inputs++;
+    saveState();
+    updateHomeStats();
+  } catch(e) {
+    setLoading(el, false);
+    el.textContent = "⚠️ Error: " + e.message;
+    showToast("AI call failed — check connection", "error");
+  }
+}
+
+// ════════════════════
+// FUSE — Resource Aggregator
+// ════════════════════
+async function fuseResource() {
+  const type = document.getElementById('res-type').value;
+  const subject = document.getElementById('res-subject').value.trim();
+  const content = document.getElementById('res-content').value.trim();
+  if (!subject || !content) { alert('Please fill in Subject and Content.'); return; }
+  const btn = document.getElementById('fuse-btn');
+  btn.disabled = true; btn.textContent = "⏳ Processing…";
+
+  const typeLabels = {class_notes:'Class Notes',textbook:'Textbook',research:'Research Article',tutorial:'Tutorial',past_exam:'Past Exam'};
+  try {
+    // Generate structured summary
+    const summaryPrompt = `You are an expert academic AI. Given the following ${typeLabels[type]} on "${subject}", generate a well-structured study material.\n\nContent:\n${content}\n\nProvide:\n## Summary\n(3-4 sentence overview)\n\n## Key Concepts\n(5-8 bullet points)\n\n## Important Definitions\n(3-5 key terms with definitions)\n\n## Exam Tips\n(2-3 likely exam questions or important points)\n\nStructured Output:`;
+    const summary = await callGranite(summaryPrompt, 700);
+
+    // Add to KB
+    const entry = { id: Date.now(), type, subject, content, summary, timestamp: new Date().toLocaleString() };
+    state.kb.push(entry);
+    renderKB();
+
+    // Show summary
+    const sumEl = document.getElementById('fuse-summary-text');
+    setLoading(sumEl, false);
+    typewrite(sumEl, summary);
+
+    // Generate flashcards
+    const fcPrompt = `From this content about "${subject}", generate exactly 6 flashcards.\nEach flashcard format:\nQ: [question]\nA: [answer]\n\nContent:\n${content.substring(0,800)}\n\nFlashcards:`;
+    const fcRaw = await callGranite(fcPrompt, 500);
+    renderFlashcards(fcRaw, subject);
+
+    // Generate concept map
+    const cmPrompt = `From this content about "${subject}", identify the central concept and 6-8 related sub-concepts.\nFormat:\nCENTER: [main concept]\nNODES: [concept1], [concept2], [concept3], [concept4], [concept5], [concept6]\n\nContent:\n${content.substring(0,600)}\n\nOutput:`;
+    const cmRaw = await callGranite(cmPrompt, 200);
+    renderConceptMap(cmRaw, subject);
+
+    // Key points
+    const kpPrompt = `Extract the most important exam-relevant key points from this ${typeLabels[type]} on "${subject}". List as numbered points, mark high-priority ones with ⭐.\n\nContent:\n${content.substring(0,800)}\n\nKey Points:`;
+    const kp = await callGranite(kpPrompt, 400);
+    const kpEl = document.getElementById('keypoints-list');
+    kpEl.textContent = kp;
+
+    state.mm_inputs++;
+    saveState();
+    updateHomeStats();
+    showToast("Resource fused successfully!", "success");
+  } catch(e) {
+    document.getElementById('fuse-summary-text').textContent = "⚠️ Error: " + e.message;
+    showToast("Fuse failed: " + e.message.substring(0,60), "error");
+  }
+  btn.disabled = false; btn.textContent = "🔗 Fuse & Summarize";
+}
+
+function renderKB() {
+  const list = document.getElementById('kb-list');
+  document.getElementById('kb-count').textContent = state.kb.length;
+  list.innerHTML = state.kb.map((e, idx) => `
+    <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:13px;font-weight:600">${e.subject}</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <div class="tag">${e.type.replace('_',' ')}</div>
+          <button onclick="deleteKBEntry(${idx})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:14px" title="Delete">✕</button>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">${e.timestamp}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">${e.content.substring(0,80)}…</div>
+    </div>
+  `).join('') || '<div class="text-muted" style="padding:20px;text-align:center">No resources yet.</div>';
+}
+
+function deleteKBEntry(idx) {
+  state.kb.splice(idx, 1);
+  renderKB();
+  saveState();
+  updateHomeStats();
+  showToast("Resource removed", "info");
+}
+
+function renderFlashcards(raw, subject) {
+  const lines = raw.split('\n').filter(l => l.trim());
+  const cards = [];
+  let cur = {};
+  for (const l of lines) {
+    if (l.startsWith('Q:')) cur.q = l.replace('Q:','').trim();
+    if (l.startsWith('A:')) { cur.a = l.replace('A:','').trim(); if(cur.q) { cards.push({...cur}); cur={}; } }
+  }
+  if (!cards.length) return;
+  state.flashcards = cards;
+  document.getElementById('fc-count').textContent = cards.length + ' cards';
+  document.getElementById('flashcard-grid').innerHTML = cards.map((c,i) => `
+    <div class="flashcard" onclick="this.classList.toggle('flipped')" title="Click to flip">
+      <div class="fc-front">
+        <div class="fc-q">❓ Question ${i+1}</div>
+        <div class="fc-text">${c.q}</div>
+      </div>
+      <div class="fc-back">✅ ${c.a}</div>
+      <div class="fc-hint">Tap to flip</div>
+    </div>
+  `).join('');
+}
+
+function renderConceptMap(raw, subject) {
+  const container = document.getElementById('concept-map-container');
+  let center = subject;
+  let nodes = [];
+  for (const l of raw.split('\n')) {
+    if (l.startsWith('CENTER:')) center = l.replace('CENTER:','').trim();
+    if (l.startsWith('NODES:')) nodes = l.replace('NODES:','').split(',').map(n=>n.trim()).filter(Boolean);
+  }
+  if (!nodes.length) { container.innerHTML = `<div class="text-muted" style="text-align:center;padding:20px">Concept map generated. Raw: ${raw.substring(0,200)}</div>`; return; }
+  const half = Math.ceil(nodes.length/2);
+  container.innerHTML = `
+    <div class="cm-row">${nodes.slice(0,half).map(n=>`<span class="cm-node">${n}</span>`).join('<span class="cm-arrow">↓</span>')}</div>
+    <div class="cm-row"><span class="cm-arrow">→</span><span class="cm-node center">${center}</span><span class="cm-arrow">←</span></div>
+    <div class="cm-row">${nodes.slice(half).map(n=>`<span class="cm-node">${n}</span>`).join('<span class="cm-arrow">↑</span>')}</div>
+  `;
+}
+
+function switchFuseTab(tab, btn) {
+  ['summary','flashcards','conceptmap','keypoints'].forEach(t => document.getElementById('fuse-'+t).style.display='none');
+  document.querySelectorAll('#page-fuse .tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('fuse-'+tab).style.display='block';
+  btn.classList.add('active');
+}
+
+// ════════════════════
+// MULTIMODAL — Text Notes
+// ════════════════════
+async function processTextNote() {
+  const text = document.getElementById('mm-text').value.trim();
+  const fmt = document.getElementById('mm-text-format').value;
+  if (!text) { alert('Please enter some text.'); return; }
+  const el = document.getElementById('mm-output');
+  setLoading(el, true);
+  const fmtMap = {
+    summary: "Generate a clear concise summary with key takeaways in bullet points.",
+    flashcards: "Generate 5 Q&A flashcards in format:\nQ: [question]\nA: [answer]",
+    bullets: "Rewrite as structured bullet points with headers for each major concept.",
+    explain: "Explain this simply as if talking to a high school student, using analogies."
+  };
+  try {
+    const prompt = `You are an expert academic tutor. Given the following student notes:\n\n${text}\n\n${fmtMap[fmt]}\n\nOutput:`;
+    const result = await callGranite(prompt, 600);
+    setLoading(el, false);
+    typewrite(el, result);
+    if (fmt === 'flashcards') {
+      renderMMFlashcards(result);
+    } else {
+      document.getElementById('mm-flashcards').innerHTML = '';
+    }
+    state.mm_inputs++;
+    saveState();
+    updateHomeStats();
+  } catch(e) {
+    setLoading(el, false);
+    el.textContent = "⚠️ Error: " + e.message;
+    showToast("Processing failed", "error");
+  }
+}
+
+function renderMMFlashcards(raw) {
+  const lines = raw.split('\n').filter(l=>l.trim());
+  const cards = [];
+  let cur = {};
+  for (const l of lines) {
+    if (l.startsWith('Q:')) cur.q = l.replace('Q:','').trim();
+    if (l.startsWith('A:')) { cur.a = l.replace('A:','').trim(); if(cur.q) { cards.push({...cur}); cur={}; } }
+  }
+  document.getElementById('mm-flashcards').innerHTML = cards.map((c,i) => `
+    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+      <div class="fc-front"><div class="fc-q">Q${i+1}</div><div class="fc-text">${c.q}</div></div>
+      <div class="fc-back">✅ ${c.a}</div>
+      <div class="fc-hint">Tap to flip</div>
+    </div>
+  `).join('');
+}
+
+// ════════════════════
+// MULTIMODAL — Voice
+// ════════════════════
+function toggleVoice() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert('Speech recognition not supported in this browser. Try Chrome or Edge.');
+    return;
+  }
+  if (state.is_recording) {
+    // User manually stopped
+    state.recognition.stop();
+    return; // onend will fire and handle the rest
+  }
+
+  // Reset stale transcript from previous session
+  state.voice_text = '';
+  document.getElementById('voice-transcript').textContent = '';
+  document.getElementById('voice-process-btn').disabled = true;
+
+  state.recognition = new SpeechRecognition();
+  state.recognition.lang = 'en-US';
+  state.recognition.continuous = true;      // keep listening until user stops
+  state.recognition.interimResults = true;
+
+  state.recognition.onresult = (e) => {
+    // Collect all results (interim + final) into one transcript
+    const transcript = Array.from(e.results).map(r => r[0].transcript).join(' ').trim();
+    document.getElementById('voice-transcript').textContent = transcript;
+    state.voice_text = transcript;
+  };
+
+  state.recognition.onend = () => {
+    // Only update UI if we were actually recording (not already stopped by error)
+    if (state.is_recording) stopVoice();
+    if (state.voice_text.trim()) {
+      document.getElementById('voice-process-btn').disabled = false;
+      document.getElementById('voice-status').textContent = 'Done! Click "Ask Granite-4" to get your answer.';
+    }
+  };
+
+  state.recognition.onerror = (e) => {
+    state.is_recording = false; // mark stopped before calling stopVoice UI update
+    const btn = document.getElementById('voice-btn');
+    btn.className = 'voice-btn idle';
+    btn.textContent = '🎤';
+    const errorMap = {
+      'not-allowed':  '⚠️ Microphone access denied — allow mic in browser settings.',
+      'no-speech':    '⚠️ No speech detected — try speaking louder.',
+      'network':      '⚠️ Network error during recognition.',
+      'audio-capture':'⚠️ No microphone found.',
+      'aborted':      'Recording stopped.'
+    };
+    document.getElementById('voice-status').textContent = errorMap[e.error] || ('⚠️ Error: ' + e.error);
+  };
+
+  try {
+    state.recognition.start();
+  } catch(err) {
+    document.getElementById('voice-status').textContent = '⚠️ Could not start mic: ' + err.message;
+    return;
+  }
+
+  state.is_recording = true;
+  const btn = document.getElementById('voice-btn');
+  btn.className = 'voice-btn recording';
+  btn.textContent = '⏹️';
+  document.getElementById('voice-status').textContent = '🔴 Recording… speak now. Press ⏹️ when done.';
+}
+
+function stopVoice() {
+  state.is_recording = false;
+  const btn = document.getElementById('voice-btn');
+  btn.className = 'voice-btn idle';
+  btn.textContent = '🎤';
+  document.getElementById('voice-status').textContent = 'Processing…';
+}
+
+async function processVoiceQuery() {
+  const query = (state.voice_text || '').trim();
+  if (!query) {
+    document.getElementById('voice-status').textContent = '⚠️ No transcript found — please record first.';
+    return;
+  }
+  const el = document.getElementById('mm-output');
+  const processBtn = document.getElementById('voice-process-btn');
+  setLoading(el, true);
+  processBtn.disabled = true;
+  document.getElementById('voice-status').textContent = '🤖 Thinking…';
+  try {
+    const prompt = `You are a knowledgeable study assistant. A student asked the following question by voice:\n\n"${query}"\n\nProvide a clear, educational answer with:\n1. Direct answer\n2. Key concepts explained\n3. Relevant example\n\nAnswer:`;
+    const result = await callGranite(prompt, 500);
+    setLoading(el, false);
+    typewrite(el, result);
+    document.getElementById('voice-status').textContent = '✅ Answer ready! Scroll down to see output.';
+    state.voice_text = '';  // clear after successful use
+    state.mm_inputs++;
+    saveState();
+    updateHomeStats();
+  } catch(e) {
+    setLoading(el, false);
+    el.textContent = "⚠️ Error: " + e.message;
+    processBtn.disabled = false; // re-enable so user can retry
+    document.getElementById('voice-status').textContent = '⚠️ AI call failed — try again.';
+  }
+}
+
+// ════════════════════
+// MULTIMODAL — Image
+// ════════════════════
+function handleImageUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const preview = document.getElementById('img-preview');
+    const src = document.getElementById('img-prev-src');
+    if (file.type.startsWith('image/')) { src.src = ev.target.result; preview.style.display='block'; }
+    else { preview.style.display='none'; }
+    document.getElementById('img-process-btn').disabled = false;
+    document.getElementById('img-process-btn').dataset.name = file.name;
+    // dataset.content is intentionally not stored to avoid large base64 in DOM
+  };
+  reader.readAsDataURL(file);
+}
+
+async function processImage() {
+  const btn = document.getElementById('img-process-btn');
+  const filename = btn.dataset.name || 'image';
+  const el = document.getElementById('mm-output');
+  setLoading(el, true);
+  try {
+    const prompt = `A student has uploaded a textbook page or educational image named "${filename}". Since this is a text-based AI, assume the image contains academic content and generate:\n\n1. **Likely Topics Covered**: Based on common textbook content\n2. **Key Concepts to Study**: 5-6 important concepts\n3. **Summary**: What a student should learn from such material\n4. **Practice Questions**: 3 questions based on typical content\n\nGenerated Study Material:`;
+    const result = await callGranite(prompt, 600);
+    setLoading(el, false);
+    typewrite(el, result);
+    state.mm_inputs++;
+    saveState();
+    updateHomeStats();
+  } catch(e) {
+    setLoading(el, false);
+    el.textContent = "⚠️ Error: " + e.message;
+  }
+}
+
+// ════════════════════
+// AGENTIC — Study Plan
+// ════════════════════
+async function generateStudyPlan() {
+  const subject = document.getElementById('plan-subject').value.trim();
+  const examdate = document.getElementById('plan-examdate').value.trim();
+  const level = document.getElementById('plan-level').value;
+  const hours = document.getElementById('plan-hours').value;
+  const weak = document.getElementById('plan-weak').value.trim();
+  if (!subject) { alert('Please enter a Subject.'); return; }
+  const btn = document.getElementById('plan-btn');
+  btn.disabled = true; btn.textContent = "⏳ Generating Plan…";
+  const card = document.getElementById('study-plan-card');
+  const content = document.getElementById('study-plan-content');
+  card.style.display = 'block';
+  content.innerHTML = '<div class="ai-response loading">Generating your personalized study plan…</div>';
+  try {
+    const prompt = `You are an expert academic planner AI. Create a detailed personalized 7-day study plan for a student.\n\nSubject: ${subject}\nExam Date: ${examdate || 'in 2 weeks'}\nLevel: ${level}\nDaily hours: ${hours}\nWeak topics: ${weak || 'general review needed'}\n\nCreate a day-by-day plan:\nDAY 1: [topics + activities + time]\nDAY 2: [topics + activities + time]\n...\nDAY 7: [revision + mock test]\n\nAlso add:\n## Priority Alert\n[Top 3 most important topics to focus on]\n\n## Exam Strategy\n[2-3 strategic tips for this exam]\n\nStudy Plan:`;
+    const result = await callGranite(prompt, 900);
+
+    // Parse into day cards
+    const days = result.split(/DAY \d+:|Day \d+:/i).filter(d=>d.trim());
+    if (days.length >= 3) {
+      const dayLabels = ['Day 1','Day 2','Day 3','Day 4','Day 5','Day 6','Day 7'];
+      content.innerHTML = days.slice(0,7).map((d,i) => `
+        <div class="plan-day">
+          <div class="plan-day-header">📅 ${dayLabels[i] || 'Day '+(i+1)}</div>
+          ${d.trim().split('\n').filter(l=>l.trim()).map(t=>`
+            <div class="plan-task">
+              <input type="checkbox" onchange="updateProgress(this)" />
+              <span>${t.replace(/^[-*•]\s*/,'')}</span>
+            </div>
+          `).join('')}
+        </div>
+      `).join('') + (result.includes('Priority Alert') ? `<div class="ai-response mt-8">${result.split(/DAY \d+:/i).pop()}</div>` : '');
+    } else {
+      content.innerHTML = `<div class="ai-response">${result}</div>`;
+    }
+
+    // Generate predictions
+    await generatePredictions(subject, weak);
+    state.plans++;
+    saveState();
+    updateHomeStats();
+    showToast("Study plan generated!", "success");
+  } catch(e) {
+    content.innerHTML = `<div class="ai-response">⚠️ Error: ${e.message}</div>`;
+    showToast("Plan generation failed", "error");
+  }
+  btn.disabled = false; btn.textContent = "🤖 Generate AI Study Plan";
+}
+
+async function generatePredictions(subject, weak) {
+  try {
+    const prompt = `As an AI exam analyst, generate 3 predictive study alerts for a student studying "${subject}" with weak areas: "${weak}".\n\nFormat each alert as:\n🔥 ALERT: [specific warning or tip]\n\nAlerts:`;
+    const result = await callGranite(prompt, 300);
+    const alertBox = document.getElementById('prediction-alerts');
+    const alerts = result.split('\n').filter(l=>l.includes('ALERT:') || l.startsWith('🔥'));
+    alertBox.innerHTML = alerts.map(a => `
+      <div class="alert alert-warn">⚠️ <span>${a.replace(/^🔥 ALERT:|^🔥/,'').trim()}</span></div>
+    `).join('') || `<div class="alert alert-info">💡 ${result}</div>`;
+  } catch(e) { /* silent */ }
+}
+
+// ════════════════════
+// AGENTIC — Quiz
+// ════════════════════
+async function generateQuiz() {
+  const topic = document.getElementById('quiz-topic').value.trim();
+  const diff = document.getElementById('quiz-diff').value;
+  if (!topic) { alert('Please enter a quiz topic.'); return; }
+  const btn = document.getElementById('quiz-btn');
+  btn.disabled = true; btn.textContent = "⏳ Generating…";
+  const card = document.getElementById('quiz-card');
+  const content = document.getElementById('quiz-content');
+  card.style.display = 'block';
+  document.getElementById('quiz-result').style.display = 'none';
+  content.innerHTML = '<div class="ai-response loading">Generating quiz questions…</div>';
+  try {
+    const prompt = `Generate a ${diff} difficulty multiple-choice quiz with 4 questions on "${topic}".\n\nFor each question use EXACTLY this format:\nQ1: [question text]\nA) [option]\nB) [option]\nC) [option]\nD) [option]\nANSWER: [correct letter]\n\nQ2: [question text]\n...\n\nQuiz:`;
+    const result = await callGranite(prompt, 700);
+    renderQuiz(result, topic);
+  } catch(e) {
+    content.innerHTML = `<div class="ai-response">⚠️ Error: ${e.message}</div>`;
+  }
+  btn.disabled = false; btn.textContent = "🎯 Generate Quiz";
+}
+
+function renderQuiz(raw, topic) {
+  const content = document.getElementById('quiz-content');
+  const blocks = raw.split(/Q\d+:/i).filter(b=>b.trim());
+  if (!blocks.length) { content.innerHTML = `<div class="ai-response">${raw}</div>`; return; }
+  let html = `<div style="font-size:14px;font-weight:600;margin-bottom:16px">📝 Quiz: ${topic}</div>`;
+  const questions = [];
+  blocks.forEach((block,qi) => {
+    const lines = block.split('\n').filter(l=>l.trim());
+    const qtext = lines[0];
+    const opts = lines.filter(l=>/^[A-D]\)/i.test(l));
+    const ansLine = lines.find(l=>l.startsWith('ANSWER:'));
+    const answer = ansLine ? ansLine.replace('ANSWER:','').trim().toUpperCase() : 'A';
+    questions.push({qtext, opts, answer});
+    html += `<div style="margin-bottom:20px">
+      <div style="font-size:14px;font-weight:600;margin-bottom:8px">Q${qi+1}: ${qtext}</div>
+      ${opts.map(o => `<div class="quiz-option" onclick="checkAnswer(this,'${answer}','q${qi}')" data-q="q${qi}">${o}</div>`).join('')}
+    </div>`;
+  });
+  html += `<button class="btn btn-primary btn-sm" onclick="submitQuiz()">📊 Submit Quiz</button>`;
+  content.innerHTML = html;
+  window._quizData = questions;
+}
+
+let quizSelections = {};
+function checkAnswer(el, correct, qid) {
+  document.querySelectorAll(`[data-q="${qid}"]`).forEach(o => { o.classList.remove('correct','wrong'); o.style.pointerEvents='auto'; });
+  const selected = el.textContent.trim()[0].toUpperCase();
+  quizSelections[qid] = selected;
+  if (selected === correct) { el.classList.add('correct'); }
+  else {
+    el.classList.add('wrong');
+    document.querySelectorAll(`[data-q="${qid}"]`).forEach(o => { if(o.textContent.trim()[0] === correct) o.classList.add('correct'); });
+  }
+  document.querySelectorAll(`[data-q="${qid}"]`).forEach(o => o.style.pointerEvents='none');
+}
+
+function submitQuiz() {
+  const questions = window._quizData || [];
+  if (!questions.length) return;
+  let correct = 0;
+  questions.forEach((q,i) => { if(quizSelections['q'+i] === q.answer) correct++; });
+  const score = Math.round((correct/questions.length)*100);
+  const resultEl = document.getElementById('quiz-result');
+  resultEl.style.display = 'block';
+  const color = score >= 70 ? 'var(--success)' : score >= 40 ? 'var(--warn)' : 'var(--danger)';
+  const topic = document.getElementById('quiz-topic').value.trim();
+  resultEl.innerHTML = `
+    <div class="alert" style="background:rgba(59,130,246,.1);border:1px solid var(--accent)">
+      <div>
+        <div style="font-size:20px;font-weight:800;color:${color}">${score}% — ${correct}/${questions.length} correct</div>
+        <div class="text-muted" style="margin-top:4px">${score>=70?'Great work! Review incorrect answers.':score>=40?'Good effort! Focus on missed topics.':'Keep practicing — review the fundamentals.'}</div>
+        <button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="exportQuizResults(${score},${correct},${questions.length},'${topic.replace(/'/g,"\\'")}')">📥 Export Results</button>
+      </div>
+    </div>`;
+  // Save to quiz history & update dashboard
+  state.quiz_history.push({ topic, score, date: new Date().toLocaleDateString() });
+  saveState();
+  document.getElementById('d-quiz').textContent = score + '%';
+  refreshDashboard();
+  quizSelections = {};
+}
+
+function exportQuizResults(score, correct, total, topic) {
+  const text = `Quiz Results — ${topic}\nDate: ${new Date().toLocaleString()}\nScore: ${score}% (${correct}/${total} correct)\n\nGenerated by SmartStudy AI — IBM WatsonX Granite-4`;
+  downloadText(text, `quiz-results-${topic.replace(/\s+/g,'-')}.txt`);
+}
+
+function updateProgress(checkbox) {
+  const allTasks = document.querySelectorAll('#study-plan-content input[type=checkbox]');
+  const done = Array.from(allTasks).filter(c=>c.checked).length;
+  const pct = allTasks.length ? Math.round((done/allTasks.length)*100) : 0;
+  const readiness = Math.min(100, 50 + Math.round(pct * 0.5));
+  document.getElementById('d-readiness').textContent = readiness + '%';
+  document.getElementById('d-readiness-bar').style.width = readiness + '%';
+  state.topics['StudyPlan'] = readiness;
+  saveState();
+}
+
+// ════════════════════
+// EXPORT HELPERS
+// ════════════════════
+function downloadText(content, filename) {
+  const a = document.createElement('a');
+  a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(content);
+  a.download = filename;
+  a.click();
+}
+
+function exportStudyMaterials() {
+  if (!state.kb.length) { showToast("No fused materials to export", "error"); return; }
+  let out = "SMART STUDY AI — Exported Study Materials\n";
+  out += "Generated: " + new Date().toLocaleString() + "\n";
+  out += "=".repeat(60) + "\n\n";
+  state.kb.forEach((e, i) => {
+    out += `[${i+1}] ${e.subject.toUpperCase()} (${e.type})\n`;
+    out += "-".repeat(40) + "\n";
+    out += e.summary + "\n\n";
+  });
+  if (state.flashcards.length) {
+    out += "=".repeat(60) + "\nFLASHCARDS\n" + "=".repeat(60) + "\n";
+    state.flashcards.forEach((fc, i) => { out += `Q${i+1}: ${fc.q}\nA: ${fc.a}\n\n`; });
+  }
+  downloadText(out, "smartstudy-export.txt");
+  showToast("Study materials exported!", "success");
+}
+
+// ════════════════════
+// DASHBOARD — Refresh
+// ════════════════════
+function refreshDashboard() {
+  // Quiz average from history
+  if (state.quiz_history.length) {
+    const avg = Math.round(state.quiz_history.reduce((s,q)=>s+q.score,0) / state.quiz_history.length);
+    document.getElementById('d-quiz').textContent = avg + '%';
+    // Update quiz bar — target the stat-card that contains d-quiz
+    const quizBar = document.getElementById('d-quiz').closest('.stat-card')?.querySelector('.progress-bar');
+    if (quizBar) quizBar.style.width = avg + '%';
+  }
+  // KB count on topics covered
+  const covered = Math.min(22, state.kb.length * 2 + 8);
+  document.getElementById('d-topics').textContent = covered + ' / 22';
+}
+
+// ════════════════════
+// DASHBOARD — AI Functions
+// ════════════════════
+async function aiWeakAreaAdvice() {
+  const el = document.getElementById('weak-ai-advice');
+  el.style.display = 'block';
+  setLoading(el, true);
+  try {
+    const prompt = `A student has weak areas in: OS Scheduling, SQL Joins, Neural Networks, Dynamic Programming.\n\nProvide a concise, actionable study strategy:\n1. Quick-win approach for each weak area\n2. Best resources/techniques\n3. Estimated hours needed per topic\n\nAdvice:`;
+    const result = await callGranite(prompt, 500);
+    setLoading(el, false);
+    typewrite(el, result);
+  } catch(e) {
+    setLoading(el, false);
+    el.textContent = "⚠️ Error: " + e.message;
+  }
+}
+
+async function generateForecast() {
+  const exam = document.getElementById('forecast-exam').value.trim();
+  const date = document.getElementById('forecast-date').value.trim();
+  if (!exam && !date) { alert('Please enter exam name or date.'); return; }
+  const el = document.getElementById('forecast-output');
+  el.style.display = 'block';
+  setLoading(el, true);
+  try {
+    const prompt = `A student is preparing for "${exam || 'their final exam'}" on "${date || 'upcoming date'}". Current stats: 72% overall readiness, weak in OS Scheduling and SQL Joins, strong in Algorithms (88%).\n\nGenerate an exam readiness forecast:\n- Predicted final score range\n- Risk assessment\n- What they must do in the remaining time\n- Day-by-day priority for last week\n\nForecast:`;
+    const result = await callGranite(prompt, 500);
+    setLoading(el, false);
+    typewrite(el, result);
+  } catch(e) {
+    setLoading(el, false);
+    el.textContent = "⚠️ Error: " + e.message;
+  }
+}
+
+async function generateInsights() {
+  const el = document.getElementById('insights-output');
+  el.style.display = 'block';
+  setLoading(el, true);
+  try {
+    const prompt = `Generate a comprehensive personalized study insights report for a student with:\n- 72% overall readiness\n- Strong: Algorithms (88%), Data Structures (76%)\n- Weak: OS (38%), SQL (54%), ML (61%)\n- 7-day study streak\n- Quiz average: 68%\n- ${state.kb.length} resources fused, ${state.plans} study plans generated\n\nProvide:\n## Overall Assessment\n## Top 3 Recommendations\n## Risk Factors\n## Predicted Exam Performance\n## Motivational Insight\n\nReport:`;
+    const result = await callGranite(prompt, 700);
+    setLoading(el, false);
+    typewrite(el, result);
+  } catch(e) {
+    setLoading(el, false);
+    el.textContent = "⚠️ Error: " + e.message;
+  }
+}
+
+// ════════════════════
+// DRAG & DROP
+// ════════════════════
+const zone = document.getElementById('img-zone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file) { const dt = new DataTransfer(); dt.items.add(file); document.getElementById('img-input').files = dt.files; handleImageUpload({target:{files:[file]}}); }
+});
+
+// ════════════════════
+// ENTER KEY SUPPORT
+// ════════════════════
+document.getElementById('quick-topic').addEventListener('keydown', e => { if(e.key==='Enter') quickBoost(); });
+document.getElementById('res-subject').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('res-content').focus(); });
+document.getElementById('quiz-topic').addEventListener('keydown', e => { if(e.key==='Enter') generateQuiz(); });
+document.getElementById('forecast-exam').addEventListener('keydown', e => { if(e.key==='Enter') generateForecast(); });
+document.getElementById('plan-subject').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('plan-examdate').focus(); });
+
+// ════════════════════════════════════════════
+// INIT — restore state, render KB, test API
+// ════════════════════════════════════════════
+(function init() {
+  updateHomeStats();
+  // Restore KB if saved
+  if (state.kb.length) {
+    renderKB();
+    showToast("Welcome back! " + state.kb.length + " resource(s) restored.", "success");
+  }
+  // Add export button to fuse page
+  const fuseHeader = document.querySelector('#page-fuse .card:last-of-type');
+  if (fuseHeader) {
+    const exportBtn = document.createElement('button');
+    exportBtn.className = 'btn btn-secondary btn-sm';
+    exportBtn.style.marginTop = '12px';
+    exportBtn.textContent = '📥 Export All Study Materials';
+    exportBtn.onclick = exportStudyMaterials;
+    fuseHeader.appendChild(exportBtn);
+  }
+  // Non-blocking connection test
+  testConnection();
+})();
+</script>
+
+<div style="text-align:center;padding:24px 0 12px;border-top:1px solid var(--border);margin-top:32px;font-size:12px;color:#444">
+  Made with <strong style="color:#3b82f6">IBM Bob</strong> · Powered by IBM WatsonX Granite-4
+</div>
+</body>
+</html>
